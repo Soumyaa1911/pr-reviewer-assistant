@@ -1,0 +1,17 @@
+from fastapi import FastAPI
+
+app = FastAPI(
+    title="PR Reviewer Assistant",
+    description="AI assistant that indexes a GitHub repo and answers questions about its code.",
+    version="0.1.0",
+)
+
+
+@app.get("/")
+def root():
+    return {"message": "PR Reviewer Assistant is running"}
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
