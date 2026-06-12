@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from app.api.routes_ask import router as ask_router
 
 app = FastAPI(
     title="PR Reviewer Assistant",
@@ -6,6 +7,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
+app.include_router(ask_router)
 
 @app.get("/")
 def root():
