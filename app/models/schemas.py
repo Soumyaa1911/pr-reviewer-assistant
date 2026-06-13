@@ -9,3 +9,12 @@ class AskRequest(BaseModel):
 class AskResponse(BaseModel):
     answer: str
     sources: list[str] = []
+
+class IndexRequest(BaseModel):
+    repo_id: str
+    repo_url: str
+
+
+class IndexResponse(BaseModel):
+    message: str
+    chunks_indexed: int
