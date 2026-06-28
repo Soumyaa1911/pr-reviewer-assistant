@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PR Reviewer — AI Codebase Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080810;
+      --surface:   #0f0f1a;
+      --border:    #1e1e30;
+      --border-hi: #2e2e48;
+      --text:      #e8e8f0;
+      --muted:     #6b6b8a;
+      --accent:    #7c6aff;
+      --accent-lo: rgba(124,106,255,0.12);
+      --accent-hi: #a594ff;
+      --green:     #34d399;
+      --red:       #f87171;
+      --mono:      'JetBrains Mono', monospace;
+      --sans:      'Inter', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      height: 56px;
+      background: rgba(8,8,16,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: -0.3px;
+    }
+
+    .nav-logo .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 4px;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .nav-links a:hover { color: var(--text); background: var(--surface); }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 96px 32px 72px;
+      max-width: 760px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border: 1px solid var(--border-hi);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+      margin-bottom: 28px;
+      letter-spacing: 0.5px;
+    }
+
+    .hero-badge .pulse {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(52,211,153,0.4); }
+      50% { opacity: 0.8; box-shadow: 0 0 0 4px rgba(52,211,153,0); }
+    }
+
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 600;
+      letter-spacing: -1.5px;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--accent-hi), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 520px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+
+    .hero-steps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .step-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .step-pill .num {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--accent-lo);
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .step-arrow { color: var(--border-hi); font-size: 16px; }
+
+    /* ── MAIN LAYOUT ── */
+    main {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 0 32px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .card:hover { border-color: var(--border-hi); }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: var(--accent-lo);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .card-title { font-weight: 600; font-size: 15px; letter-spacing: -0.3px; }
+    .card-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .card-body { padding: 24px; }
+
+    /* ── FORM ELEMENTS ── */
+    .field { margin-bottom: 16px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    input, textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      resize: vertical;
+    }
+
+    input::placeholder, textarea::placeholder { color: var(--muted); opacity: 0.6; }
+
+    input:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-lo);
+    }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ── BUTTON ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--sans);
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      letter-spacing: -0.2px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hi);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(124,106,255,0.3);
+    }
+
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+
+    /* ── SPINNER ── */
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── OUTPUT ── */
+    .output {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .output-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .output-header .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .output-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.8;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    .output-box::-webkit-scrollbar { width: 4px; }
+    .output-box::-webkit-scrollbar-track { background: transparent; }
+    .output-box::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+
+    .sources-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .source-tag {
+      padding: 3px 10px;
+      background: var(--accent-lo);
+      border: 1px solid rgba(124,106,255,0.2);
+      border-radius: 20px;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--accent-hi);
+    }
+
+    /* ── STATUS MESSAGES ── */
+    .status-msg {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 16px;
+    }
+
+    .status-msg.success {
+      background: rgba(52,211,153,0.08);
+      border: 1px solid rgba(52,211,153,0.2);
+      color: var(--green);
+    }
+
+    .status-msg.error {
+      background: rgba(248,113,113,0.08);
+      border: 1px solid rgba(248,113,113,0.2);
+      color: var(--red);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 32px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { color: var(--accent-hi); }
+
+    /* ── MARKDOWN-LIKE OUTPUT STYLING ── */
+    .output-box .md-h3 {
+      color: var(--accent-hi);
+      font-weight: 600;
+      display: block;
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+
+    @media (max-width: 600px) {
+      nav { padding: 0 16px; }
+      main { padding: 0 16px 60px; }
+      .hero { padding: 60px 16px 48px; }
+      .row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="dot"></div>
+    PR Reviewer
+  </div>
+  <div class="nav-links">
+    <a href="#index">Index</a>
+    <a href="#ask">Ask</a>
+    <a href="#review">Review</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <div class="pulse"></div>
+    RAG · LangGraph · Groq LLaMA 3.1
+  </div>
+  <h1>Understand any codebase.<br /><span>Instantly.</span></h1>
+  <p>Index a GitHub repository, ask natural language questions about the code, and get AI-generated pull request reviews — grounded in the actual source.</p>
+  <div class="hero-steps">
+    <div class="step-pill"><div class="num">1</div> Index a repo</div>
+    <div class="step-arrow">→</div>
+    <div class="step-pill"><div class="num">2</div> Ask questions</div>
+    <div class="step-arrow">→</div>
+    <div class="step-pill"><div class="num">3</div> Review PRs</div>
+  </div>
+</section>
+
+<!-- MAIN -->
+<main>
+
+  <!-- STEP 1: INDEX -->
+  <div class="card" id="index">
+    <div class="card-header">
+      <div class="card-icon">⬡</div>
+      <div>
+        <div class="card-title">Index a Repository</div>
+        <div class="card-desc">Clone, chunk, embed, and store a GitHub repo for querying</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Repository ID</label>
+        <input type="text" id="index-repo-id" placeholder="my-project" />
+      </div>
+      <div class="field">
+        <label>GitHub URL</label>
+        <input type="text" id="index-repo-url" placeholder="https://github.com/username/repository" />
+      </div>
+      <div class="btn-actions">
+        <button class="btn btn-primary" onclick="indexRepo()" id="index-btn">
+          <div class="spinner" id="index-spinner"></div>
+          Index Repository
+        </button>
+      </div>
+      <div class="status-msg" id="index-status"></div>
+    </div>
+  </div>
+
+  <!-- STEP 2: ASK -->
+  <div class="card" id="ask">
+    <div class="card-header">
+      <div class="card-icon">◈</div>
+      <div>
+        <div class="card-title">Ask a Question</div>
+        <div class="card-desc">Query the indexed codebase using natural language</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Repository ID</label>
+        <input type="text" id="ask-repo-id" placeholder="my-project (must be indexed first)" />
+      </div>
+      <div class="field">
+        <label>Question</label>
+        <textarea id="ask-question" rows="3" placeholder="How does authentication work in this codebase?"></textarea>
+      </div>
+      <div class="btn-actions">
+        <button class="btn btn-primary" onclick="askQuestion()" id="ask-btn">
+          <div class="spinner" id="ask-spinner"></div>
+          Ask
+        </button>
+      </div>
+      <div class="output" id="ask-output">
+        <div class="output-header">
+          <div class="status-dot"></div>
+          Answer
+        </div>
+        <div class="output-box" id="ask-answer"></div>
+        <div class="sources-list" id="ask-sources"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: REVIEW -->
+  <div class="card" id="review">
+    <div class="card-header">
+      <div class="card-icon">⬡</div>
+      <div>
+        <div class="card-title">Review a Pull Request</div>
+        <div class="card-desc">AI-generated code review grounded in the existing codebase</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Repository ID</label>
+        <input type="text" id="review-repo-id" placeholder="my-project (must be indexed first)" />
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>GitHub Owner</label>
+          <input type="text" id="review-owner" placeholder="username" />
+        </div>
+        <div class="field">
+          <label>Repository Name</label>
+          <input type="text" id="review-name" placeholder="repository" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Pull Request Number</label>
+        <input type="number" id="review-pr" placeholder="42" />
+      </div>
+      <div class="btn-actions">
+        <button class="btn btn-primary" onclick="reviewPR()" id="review-btn">
+          <div class="spinner" id="review-spinner"></div>
+          Generate Review
+        </button>
+      </div>
+      <div class="output" id="review-output">
+        <div class="output-header">
+          <div class="status-dot"></div>
+          Review
+        </div>
+        <div class="output-box" id="review-result"></div>
+        <div class="sources-list" id="review-files"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  Built with FastAPI · ChromaDB · LangGraph · Groq &nbsp;·&nbsp;
+  <a href="/docs" target="_blank">API Docs →</a>
+</footer>
+
+<script>
+  const API = '';  // empty = same origin
+
+  function setLoading(id, loading) {
+    const btn = document.getElementById(`${id}-btn`);
+    const spinner = document.getElementById(`${id}-spinner`);
+    btn.disabled = loading;
+    spinner.style.display = loading ? 'block' : 'none';
+  }
+
+  function showStatus(id, type, msg) {
+    const el = document.getElementById(`${id}-status`);
+    el.className = `status-msg ${type}`;
+    el.innerHTML = (type === 'success' ? '✓ ' : '✕ ') + msg;
+    el.style.display = 'flex';
+  }
+
+  function formatMarkdown(text) {
+    return text
+      .replace(/^### (.+)$/gm, '<span class="md-h3">$1</span>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  }
+
+  async function indexRepo() {
+    const repoId = document.getElementById('index-repo-id').value.trim();
+    const repoUrl = document.getElementById('index-repo-url').value.trim();
+    if (!repoId || !repoUrl) return showStatus('index', 'error', 'Both fields are required.');
+
+    setLoading('index', true);
+    const statusEl = document.getElementById('index-status');
+    statusEl.style.display = 'none';
+
+    try {
+      const res = await fetch(`${API}/repo/index`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repo_id: repoId, repo_url: repoUrl })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Failed to index repo');
+      showStatus('index', 'success', `${data.chunks_indexed} chunks indexed. Ready to query as "${repoId}".`);
+      document.getElementById('ask-repo-id').value = repoId;
+      document.getElementById('review-repo-id').value = repoId;
+    } catch (e) {
+      showStatus('index', 'error', e.message);
+    } finally {
+      setLoading('index', false);
+    }
+  }
+
+  async function askQuestion() {
+    const repoId = document.getElementById('ask-repo-id').value.trim();
+    const question = document.getElementById('ask-question').value.trim();
+    if (!repoId || !question) return;
+
+    setLoading('ask', true);
+    document.getElementById('ask-output').style.display = 'none';
+
+    try {
+      const res = await fetch(`${API}/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repo_id: repoId, question })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Request failed');
+
+      document.getElementById('ask-answer').innerHTML = formatMarkdown(data.answer);
+      const sourcesEl = document.getElementById('ask-sources');
+      sourcesEl.innerHTML = '';
+      (data.sources || []).forEach(s => {
+        const tag = document.createElement('div');
+        tag.className = 'source-tag';
+        tag.textContent = s.split('/').pop().split('\\').pop();
+        sourcesEl.appendChild(tag);
+      });
+      document.getElementById('ask-output').style.display = 'block';
+    } catch (e) {
+      alert('Error: ' + e.message);
+    } finally {
+      setLoading('ask', false);
+    }
+  }
+
+  async function reviewPR() {
+    const repoId = document.getElementById('review-repo-id').value.trim();
+    const owner = document.getElementById('review-owner').value.trim();
+    const name = document.getElementById('review-name').value.trim();
+    const pr = parseInt(document.getElementById('review-pr').value);
+    if (!repoId || !owner || !name || !pr) return;
+
+    setLoading('review', true);
+    document.getElementById('review-output').style.display = 'none';
+
+    try {
+      const res = await fetch(`${API}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repo_id: repoId, repo_owner: owner, repo_name: name, pr_number: pr })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Request failed');
+
+      document.getElementById('review-result').innerHTML = formatMarkdown(data.review);
+      const filesEl = document.getElementById('review-files');
+      filesEl.innerHTML = '';
+      (data.files_changed || []).slice(0, 8).forEach(f => {
+        const tag = document.createElement('div');
+        tag.className = 'source-tag';
+        tag.textContent = f.split('/').pop();
+        filesEl.appendChild(tag);
+      });
+      document.getElementById('review-output').style.display = 'block';
+    } catch (e) {
+      alert('Error: ' + e.message);
+    } finally {
+      setLoading('review', false);
+    }
+  }
+
+  // Allow Enter key in inputs to trigger action
+  document.getElementById('index-repo-url').addEventListener('keydown', e => { if (e.key === 'Enter') indexRepo(); });
+  document.getElementById('ask-question').addEventListener('keydown', e => { if (e.key === 'Enter' && e.ctrlKey) askQuestion(); });
+  document.getElementById('review-pr').addEventListener('keydown', e => { if (e.key === 'Enter') reviewPR(); });
+</script>
+</body>
+</html>
