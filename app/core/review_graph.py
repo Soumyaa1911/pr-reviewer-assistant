@@ -1,13 +1,11 @@
 from typing import TypedDict
 from langgraph.graph import StateGraph, END
 from langchain_groq import ChatGroq
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import Chroma
 from app.core.config import settings
 from app.ingestion.pr_loader import get_pr_diff
 from app.ingestion.diff_parser import parse_diff
 
-# Shared state between all nodes
+
 class ReviewState(TypedDict):
     repo_id: str
     repo_owner: str
@@ -21,16 +19,14 @@ class ReviewState(TypedDict):
     test_suggestions: str
     final_review: str
 
-# LLM and embeddings
-llm = ChatGroq(
-    api_key=settings.LLM_API_KEY,
-    model_name="llama-3.1-8b-instant",
-)
 
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+def get_llm():
+    return ChatGroq(
+        api_key=settings.LLM_API_KEY,
+        model_name="llama-3.1-8b-instant",
+    )
 
 
-# Node 1: Fetch and parse the PR diff
 def fetch_diff_node(state: ReviewState) -> ReviewState:
     diff_text = get_pr_diff(state["repo_owner"], state["repo_name"], state["pr_number"])
     parsed = parse_diff(diff_text)
@@ -39,8 +35,12 @@ def fetch_diff_node(state: ReviewState) -> ReviewState:
     return state
 
 
-# Node 2: Retrieve related context from vector store
 def retrieve_context_node(state: ReviewState) -> ReviewState:
+    from langchain_huggingface import HuggingFaceEmbeddings
+    from langchain_community.vectorstores import Chroma
+
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+
     vectorstore = Chroma(
         collection_name=state["repo_id"],
         embedding_function=embeddings,
@@ -48,7 +48,6 @@ def retrieve_context_node(state: ReviewState) -> ReviewState:
     )
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
-    # Use added lines as search query
     added_lines = " ".join(
         line for f in state["parsed_files"] for line in f["added"][:5]
     )
@@ -57,8 +56,8 @@ def retrieve_context_node(state: ReviewState) -> ReviewState:
     return state
 
 
-# Node 3: Generate a summary of what the PR does
 def summarize_node(state: ReviewState) -> ReviewState:
+    llm = get_llm()
     prompt = f"""Summarize what this PR does in 2-3 sentences.
 
 Diff:
@@ -67,8 +66,8 @@ Diff:
     return state
 
 
-# Node 4: Check for potential bugs
 def check_bugs_node(state: ReviewState) -> ReviewState:
+    llm = get_llm()
     prompt = f"""You are a code reviewer. Based on the diff and codebase context, identify potential bugs or issues.
 
 Context:
@@ -82,8 +81,8 @@ List specific potential bugs or issues, or say 'No obvious bugs found.'"""
     return state
 
 
-# Node 5: Suggest tests
 def suggest_tests_node(state: ReviewState) -> ReviewState:
+    llm = get_llm()
     prompt = f"""Based on this PR diff, what tests should be added or updated?
 
 Diff:
@@ -94,7 +93,6 @@ Be specific about what scenarios need testing."""
     return state
 
 
-# Node 6: Combine all findings into final review
 def combine_node(state: ReviewState) -> ReviewState:
     state["final_review"] = f"""## PR Review
 
@@ -110,7 +108,6 @@ def combine_node(state: ReviewState) -> ReviewState:
     return state
 
 
-# Build the graph
 def build_review_graph():
     graph = StateGraph(ReviewState)
 

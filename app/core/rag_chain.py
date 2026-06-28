@@ -6,18 +6,6 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from app.core.config import settings
 
-# LLM
-llm = ChatGroq(
-    api_key=settings.LLM_API_KEY,
-    model_name="llama-3.1-8b-instant",
-)
-
-# Embeddings
-embeddings = HuggingFaceEmbeddings(
-    model_name="all-MiniLM-L6-v2"
-)
-
-# Prompt template
 prompt_template = PromptTemplate(
     input_variables=["context", "question"],
     template="""You are an expert code assistant. Use the following code context to answer the question.
@@ -32,6 +20,15 @@ Answer:"""
 
 
 def get_rag_chain(repo_id: str):
+    llm = ChatGroq(
+        api_key=settings.LLM_API_KEY,
+        model_name="llama-3.1-8b-instant",
+    )
+
+    embeddings = HuggingFaceEmbeddings(
+        model_name="all-MiniLM-L6-v2"
+    )
+
     vectorstore = Chroma(
         collection_name=repo_id,
         embedding_function=embeddings,
