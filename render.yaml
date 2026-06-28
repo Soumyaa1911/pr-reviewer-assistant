@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: pr-reviewer-assistant
+    runtime: python
+    buildCommand: pip install fastapi uvicorn pydantic pydantic-settings python-dotenv groq gitpython sentence-transformers chromadb requests langchain langchain-groq langchain-community langchain-huggingface langchain-core langgraph transformers torch
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: LLM_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: CHROMA_DB_PATH
+        value: ./data/chroma_db
